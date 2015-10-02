@@ -10,14 +10,14 @@
      * @@shapeParams
      * @@nodeParams
      * @example
-     * var hexagon = new Kinetic.RegularPolygon({<br>
-     *   x: 100,<br>
-     *   y: 200,<br>
-     *   sides: 6,<br>
-     *   radius: 70,<br>
-     *   fill: 'red',<br>
-     *   stroke: 'black',<br>
-     *   strokeWidth: 4<br>
+     * var hexagon = new Kinetic.RegularPolygon({
+     *   x: 100,
+     *   y: 200,
+     *   sides: 6,
+     *   radius: 70,
+     *   fill: 'red',
+     *   stroke: 'black',
+     *   strokeWidth: 4
      * });
      */
     Kinetic.RegularPolygon = function(config) {
@@ -29,8 +29,9 @@
             // call super constructor
             Kinetic.Shape.call(this, config);
             this.className = 'RegularPolygon';
+            this.sceneFunc(this._sceneFunc);
         },
-        drawFunc: function(context) {
+        _sceneFunc: function(context) {
             var sides = this.attrs.sides,
                 radius = this.attrs.radius,
                 n, x, y;
@@ -83,4 +84,6 @@
      * @method
      * @memberof Kinetic.RegularPolygon.prototype
      */
+
+    Kinetic.Collection.mapMethods(Kinetic.RegularPolygon);
 })();

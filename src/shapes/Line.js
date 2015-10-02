@@ -6,18 +6,19 @@
      * @memberof Kinetic
      * @augments Kinetic.Shape
      * @param {Object} config
-     * @param {Array} config.points can be a flattened array of points, an array of point arrays, or an array of point objects.
-     *  e.g. [0,1,2,3], [[0,1],[2,3]] and [{x:0,y:1},{x:2,y:3}] are equivalent
-     * @param {Number} [config.tension] default value is 1.  Higher values will result in a more curvy line.  A value of 0 will result in no interpolation.
+     * @param {Array} config.points
+     * @param {Number} [config.tension] Higher values will result in a more curvy line.  A value of 0 will result in no interpolation.
+     *   The default is 0
+     * @param {Boolean} [config.closed] defines whether or not the line shape is closed, creating a polygon or blob 
      * @@shapeParams
      * @@nodeParams
      * @example
-     * var line = new Kinetic.Line({<br>
-     *   x: 100,<br>
-     *   y: 50,<br>
-     *   points: [73, 70, 340, 23, 450, 60, 500, 20],<br>
-     *   stroke: 'red',<br>
-     *   tension: 1<br>
+     * var line = new Kinetic.Line({
+     *   x: 100,
+     *   y: 50,
+     *   points: [73, 70, 340, 23, 450, 60, 500, 20],
+     *   stroke: 'red',
+     *   tension: 1
      * });
      */
     Kinetic.Line = function(config) {
@@ -26,7 +27,6 @@
 
     Kinetic.Line.prototype = {
         ___init: function(config) {
-            var that = this;
             // call super constructor
             Kinetic.Shape.call(this, config);
             this.className = 'Line';
@@ -34,13 +34,15 @@
             this.on('pointsChange.kinetic tensionChange.kinetic closedChange.kinetic', function() {
                 this._clearCache('tensionPoints');
             });
+
+            this.sceneFunc(this._sceneFunc);
         },
-        drawFunc: function(context) {
+        _sceneFunc: function(context) {
             var points = this.getPoints(),
                 length = points.length,
                 tension = this.getTension(),
                 closed = this.getClosed(),
-                tp, len, n, point;
+                tp, len, n;
 
             context.beginPath();
             context.moveTo(points[0], points[1]);
@@ -73,19 +75,19 @@
             // closed e.g. polygons and blobs
             if (closed) {
                 context.closePath();
-                context.fillStrokeShape(this);   
+                context.fillStrokeShape(this);
             }
             // open e.g. lines and splines
             else {
                 context.strokeShape(this);
-            };
+            }
         },
         getTensionPoints: function() {
-            return this._getCache('tensionPoints', this._getTensionPoints); 
+            return this._getCache('tensionPoints', this._getTensionPoints);
         },
         _getTensionPoints: function() {
             if (this.getClosed()) {
-                return this._getTensionPointsClosed();  
+                return this._getTensionPointsClosed();
             }
             else {
                 return Kinetic.Util._expandPoints(this.getPoints(), this.getTension());
@@ -98,40 +100,40 @@
                 util = Kinetic.Util,
                 firstControlPoints = util._getControlPoints(
                     p[len-2],
-                    p[len-1], 
-                    p[0], 
-                    p[1], 
-                    p[2], 
+                    p[len-1],
+                    p[0],
+                    p[1],
+                    p[2],
                     p[3],
                     tension
                 ),
                 lastControlPoints = util._getControlPoints(
-                    p[len-4], 
-                    p[len-3], 
-                    p[len-2], 
-                    p[len-1], 
-                    p[0], 
+                    p[len-4],
+                    p[len-3],
+                    p[len-2],
+                    p[len-1],
+                    p[0],
                     p[1],
                     tension
                 ),
                 middle = Kinetic.Util._expandPoints(p, tension),
                 tp = [
-                        firstControlPoints[2], 
-                        firstControlPoints[3]
-                    ]
-                    .concat(middle)
-                    .concat([
-                        lastControlPoints[0],
-                        lastControlPoints[1],
-                        p[len-2],
-                        p[len-1],
-                        lastControlPoints[2],
-                        lastControlPoints[3],
-                        firstControlPoints[0],
-                        firstControlPoints[1],
-                        p[0],
-                        p[1]
-                    ]);
+                    firstControlPoints[2],
+                    firstControlPoints[3]
+                ]
+                .concat(middle)
+                .concat([
+                    lastControlPoints[0],
+                    lastControlPoints[1],
+                    p[len-2],
+                    p[len-1],
+                    lastControlPoints[2],
+                    lastControlPoints[3],
+                    firstControlPoints[0],
+                    firstControlPoints[1],
+                    p[0],
+                    p[1]
+                ]);
                     
             return tp;
         }
@@ -142,54 +144,59 @@
     Kinetic.Factory.addGetterSetter(Kinetic.Line, 'closed', false);
 
     /**
-     * get closed
-     * @name getClosed
-     * @method
-     * @memberof Kinetic.Line.prototype
-     * @returns {Boolean}
-     */
-
-    /**
-     * set closed
-     * @name setClosed
+     * get/set closed flag.  The default is false
+     * @name closed
      * @method
      * @memberof Kinetic.Line.prototype
      * @param {Boolean} closed
+     * @returns {Boolean}
+     * @example
+     * // get closed flag
+     * var closed = line.closed();
+     *
+     * // close the shape
+     * line.closed(true);
+     *
+     * // open the shape
+     * line.closed(false);
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Line, 'tension', 0);
 
     /**
-     * get tension
-     * @name getTension
+     * get/set tension
+     * @name tension
      * @method
      * @memberof Kinetic.Line.prototype
+     * @param {Number} Higher values will result in a more curvy line.  A value of 0 will result in no interpolation.
+     *   The default is 0
      * @returns {Number}
-     */
-
-    /**
-     * set tension
-     * @name setTension
-     * @method
-     * @memberof Kinetic.Line.prototype
-     * @param {Number} tension
+     * @example
+     * // get tension
+     * var tension = line.tension();
+     *
+     * // set tension
+     * line.tension(3);
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Line, 'points');
     /**
-     * get points array
-     * @name getPoints
+     * get/set points array
+     * @name points
      * @method
      * @memberof Kinetic.Line.prototype
+     * @param {Array} points
      * @returns {Array}
+     * @example
+     * // get points
+     * var points = line.points();
+     *
+     * // set points
+     * line.points([10, 20, 30, 40, 50, 60]);
+     *
+     * // push a new point
+     * line.points(line.points().concat([70, 80]));
      */
 
-    /**
-     * set points array
-     * @name setPoints
-     * @method
-     * @memberof Kinetic.Line.prototype
-     * @param {Array} can be an array of point objects or an array
-     *  of Numbers.  e.g. [{x:1,y:2},{x:3,y:4}] or [1,2,3,4]
-     */
+    Kinetic.Collection.mapMethods(Kinetic.Line);
 })();

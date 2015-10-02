@@ -6,38 +6,38 @@
         CLOSE_BRACKET_PAREN = '])',
         SEMICOLON = ';',
         DOUBLE_PAREN = '()',
-        EMPTY_STRING = '',
+        // EMPTY_STRING = '',
         EQUALS = '=',
-        SET = 'set',
+        // SET = 'set',
         CONTEXT_METHODS = [
             'arc',
             'arcTo',
             'beginPath',
             'bezierCurveTo',
-            'clearRect', 
+            'clearRect',
             'clip',
             'closePath',
             'createLinearGradient',
             'createPattern',
             'createRadialGradient',
             'drawImage',
-            'fill', 
-            'fillText', 
+            'fill',
+            'fillText',
             'getImageData',
             'createImageData',
             'lineTo',
             'moveTo',
             'putImageData',
             'quadraticCurveTo',
-            'rect', 
-            'restore', 
+            'rect',
+            'restore',
             'rotate',
-            'save', 
+            'save',
             'scale',
             'setLineDash',
-            'setTransform', 
-            'stroke', 
-            'strokeText', 
+            'setTransform',
+            'stroke',
+            'strokeText',
             'transform',
             'translate'
         ];
@@ -124,7 +124,7 @@
                     str += method;
                     if (relaxed) {
                         str += DOUBLE_PAREN;
-                    } 
+                    }
                     else {
                         if (Kinetic.Util._isArray(args[0])) {
                             str += OPEN_PAREN_BRACKET + args.join(COMMA) + CLOSE_BRACKET_PAREN;
@@ -139,7 +139,7 @@
                     str += trace.property;
                     if (!relaxed) {
                         str += EQUALS + trace.val;
-                    }  
+                    }
                 }
 
                 str += SEMICOLON;
@@ -195,8 +195,7 @@
          * @param {Number} [bounds.height]
          */
         clear: function(bounds) {
-            var canvas = this.getCanvas(),
-                pos, size;
+            var canvas = this.getCanvas();
             
             if (bounds) {
                 this.clearRect(bounds.x || 0, bounds.y || 0, bounds.width || 0, bounds.height || 0);
@@ -223,42 +222,6 @@
                 this.setAttr('lineJoin', lineJoin);
             }
         },
-        _applyAncestorTransforms: function(shape) {
-            var m;
-
-            if (shape.isTransformsEnabled()) {
-                if (shape.isAncestorTransformsEnabled()) {
-                    // poor performance
-                    m = shape.getAbsoluteTransform().getMatrix();
-                }
-                else {
-                    // better performance
-                    m = shape.getTransform().getMatrix();
-                }
-                this.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-            }
-            else {
-                // best performance
-                this.translate(shape.getX(), shape.getY());
-            }
-            
-        },
-        _clip: function(container) {
-            var clipX = container.getClipX(),
-                clipY = container.getClipY(),
-                clipWidth = container.getClipWidth(),
-                clipHeight = container.getClipHeight();
-
-            this.save();
-            this._applyAncestorTransforms(container);
-            this.beginPath();
-            this.rect(clipX, clipY, clipWidth, clipHeight);
-            this.clip();
-            this.reset();
-            container._drawChildren(this.getCanvas());
-            this.restore();
-        },
-
         setAttr: function(attr, val) {
             this._context[attr] = val;
         },
@@ -410,9 +373,8 @@
                 origSetter = this.setAttr,
                 n, args;
 
-            // methods
-            for (n=0; n<len; n++) {
-                (function(methodName) {
+            // to prevent creating scope function at each loop
+            var func = function(methodName) {
                     var origMethod = that[methodName],
                         ret;
 
@@ -427,7 +389,10 @@
                  
                         return ret;
                     };
-                })(CONTEXT_METHODS[n]);
+            };
+            // methods
+            for (n=0; n<len; n++) {
+                func(CONTEXT_METHODS[n]);
             }
 
             // attrs
@@ -447,7 +412,13 @@
 
     Kinetic.SceneContext.prototype = {
         _fillColor: function(shape) {
-            var fill = shape.getFill();
+            var fill = shape.fill()
+                || Kinetic.Util._getRGBAString({
+                    red: shape.fillRed(),
+                    green: shape.fillGreen(),
+                    blue: shape.fillBlue(),
+                    alpha: shape.fillAlpha()
+                });
 
             this.setAttr('fillStyle', fill);
             shape._fillFunc(this);
@@ -457,7 +428,7 @@
                 fillPatternX = shape.getFillPatternX(),
                 fillPatternY = shape.getFillPatternY(),
                 fillPatternScale = shape.getFillPatternScale(),
-                fillPatternRotation = shape.getFillPatternRotation(),
+                fillPatternRotation = Kinetic.getAngle(shape.getFillPatternRotation()),
                 fillPatternOffset = shape.getFillPatternOffset(),
                 fillPatternRepeat = shape.getFillPatternRepeat();
 
@@ -497,7 +468,7 @@
                 end = shape.getFillRadialGradientEndPoint(),
                 startRadius = shape.getFillRadialGradientStartRadius(),
                 endRadius = shape.getFillRadialGradientEndRadius(),
-                colorStops = shape.getFillRadialGradientColorStops(),  
+                colorStops = shape.getFillRadialGradientColorStops(),
                 grd = this.createRadialGradient(start.x, start.y, startRadius, end.x, end.y, endRadius);
            
             // build color stops
@@ -508,7 +479,7 @@
             this.fill();
         },
         _fill: function(shape) {
-            var hasColor = shape.getFill(),
+            var hasColor = shape.fill() || shape.fillRed() || shape.fillGreen() || shape.fillBlue(),
                 hasPattern = shape.getFillPatternImage(),
                 hasLinearGradient = shape.getFillLinearGradientColorStops(),
                 hasRadialGradient = shape.getFillRadialGradientColorStops(),
@@ -542,9 +513,7 @@
             }
         },
         _stroke: function(shape) {
-            var stroke = shape.getStroke(),
-                strokeWidth = shape.getStrokeWidth(),
-                dashArray = shape.getDashArray(),
+            var dash = shape.dash(),
                 strokeScaleEnabled = shape.getStrokeScaleEnabled();
 
             if(shape.hasStroke()) {
@@ -553,14 +522,20 @@
                     this.setTransform(1, 0, 0, 1, 0, 0);
                 }
 
-                /////////////////////
                 this._applyLineCap(shape);
-                if(dashArray && shape.getDashArrayEnabled()) {
-                    this.setLineDash(dashArray);
+                if(dash && shape.dashEnabled()) {
+                    this.setLineDash(dash);
                 }
 
-                this.setAttr('lineWidth', strokeWidth || 2);
-                this.setAttr('strokeStyle', stroke || 'black');
+                this.setAttr('lineWidth', shape.strokeWidth());
+                this.setAttr('strokeStyle', shape.stroke()
+                    || Kinetic.Util._getRGBAString({
+                        red: shape.strokeRed(),
+                        green: shape.strokeGreen(),
+                        blue: shape.strokeBlue(),
+                        alpha: shape.strokeAlpha()
+                    }));
+
                 shape._strokeFunc(this);
                 
                 if (!strokeScaleEnabled) {
@@ -573,7 +548,7 @@
                 absOpacity = shape.getAbsoluteOpacity(),
                 color = util.get(shape.getShadowColor(), 'black'),
                 blur = util.get(shape.getShadowBlur(), 5),
-                shadowOpacity = util.get(shape.getShadowOpacity(), 0),
+                shadowOpacity = util.get(shape.getShadowOpacity(), 1),
                 offset = util.get(shape.getShadowOffset(), {
                     x: 0,
                     y: 0
@@ -604,12 +579,9 @@
             this.restore();
         },
         _stroke: function(shape) {
-            var stroke = shape.getStroke(),
-                strokeWidth = shape.getStrokeWidth();
-
-            if(stroke || strokeWidth) {
+            if(shape.hasStroke()) {
                 this._applyLineCap(shape);
-                this.setAttr('lineWidth', strokeWidth || 2);
+                this.setAttr('lineWidth', shape.strokeWidth());
                 this.setAttr('strokeStyle', shape.colorKey);
                 shape._strokeFuncHit(this);
             }

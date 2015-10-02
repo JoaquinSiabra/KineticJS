@@ -6,87 +6,35 @@ suite('Sprite', function() {
             var stage = addStage();
             var layer = new Kinetic.Layer();
 
-            var anims = {
-                standing: [{
-                    x: 0,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 52,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 105,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 158,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 210,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 262,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }],
 
-                kicking: [{
-                    x: 0,
-                    y: 109,
-                    width: 45,
-                    height: 98
-                }, {
-                    x: 45,
-                    y: 109,
-                    width: 45,
-                    height: 98
-                }, {
-                    x: 95,
-                    y: 109,
-                    width: 63,
-                    height: 98
-                }, {
-                    x: 156,
-                    y: 109,
-                    width: 70,
-                    height: 98
-                }, {
-                    x: 229,
-                    y: 109,
-                    width: 60,
-                    height: 98
-                }, {
-                    x: 287,
-                    y: 109,
-                    width: 41,
-                    height: 98
-                }]
-            };
-
-            //for(var n = 0; n < 50; n++) {
-            sprite = new Kinetic.Sprite({
-                //x: Math.random() * stage.getWidth() - 30,
+            var sprite = new Kinetic.Sprite({
                 x: 200,
-                //y: Math.random() * stage.getHeight() - 50,
                 y: 50,
                 image: imageObj,
                 animation: 'standing',
-                animations: anims,
-                frameRate: Math.random() * 6 + 6,
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ],
+                    kicking: [
+                        0, 109, 45, 98,
+                        45, 109, 45, 98,
+                        95, 109, 63, 98,
+                        156, 109, 70, 98,
+                        229, 109, 60, 98,
+                        287, 109, 41, 98
+                    ]
+                },
                 frameRate: 10,
                 draggable: true,
                 shadowColor: 'black',
                 shadowBlur: 3,
-                shadowOffset: [3, 1],
+                shadowOffset: {x: 3, y:1},
                 shadowOpacity: 0.3
             });
 
@@ -94,7 +42,7 @@ suite('Sprite', function() {
             stage.add(layer);
 
             assert.equal(sprite.getClassName(), 'Sprite');
-            assert.equal(sprite.getIndex(), 0);
+            assert.equal(sprite.frameIndex(), 0);
 
             showHit(layer);
 
@@ -108,9 +56,10 @@ suite('Sprite', function() {
             // kick once
             setTimeout(function() {
                 sprite.setAnimation('kicking');
-
-                sprite.afterFrame(5, function() {
-                    sprite.setAnimation('standing');
+                sprite.on('indexChange', function(evt) {
+                    if (evt.newVal === 0 && this.getAnimation() === 'kicking') {
+                        sprite.setAnimation('standing');
+                    }
                 });
             }, 2000);
             setTimeout(function() {
@@ -123,4 +72,222 @@ suite('Sprite', function() {
         };
         imageObj.src = 'assets/scorpion-sprite.png';
     });
+
+    // ======================================================
+    test('don`t update layer too many times', function(done) {
+        var imageObj = new Image();
+        imageObj.onload = function() {
+            var stage = addStage();
+            var layer = new Kinetic.Layer();
+
+
+            var sprite = new Kinetic.Sprite({
+                x: 200,
+                y: 50,
+                image: imageObj,
+                animation: 'standing',
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ]
+                },
+                frameRate: 5,
+                draggable: true,
+                shadowColor: 'black',
+                shadowBlur: 3,
+                shadowOffset: {x: 3, y:1},
+                shadowOpacity: 0.3
+            });
+
+            layer.add(sprite);
+            stage.add(layer);
+
+            var oldDraw = layer.draw;
+            var updateCount = 0;
+            layer.draw = function() {
+                updateCount++;
+                oldDraw.call(layer);
+            };
+
+            sprite.start();
+            setTimeout(function() {
+                sprite.stop();
+                assert.equal(updateCount < 7, true);
+                done();
+            }, 1000);
+
+
+        };
+        imageObj.src = 'assets/scorpion-sprite.png';
+    });
+
+    // ======================================================
+    test('don`t update layer too many times 2', function(done) {
+        var imageObj = new Image();
+        imageObj.onload = function() {
+            var stage = addStage();
+            var layer = new Kinetic.Layer();
+
+
+            var sprite = new Kinetic.Sprite({
+                x: 200,
+                y: 50,
+                image: imageObj,
+                animation: 'standing',
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ]
+                },
+                frameRate: 5
+            });
+
+            var sprite2 = new Kinetic.Sprite({
+                x: 200,
+                y: 50,
+                image: imageObj,
+                animation: 'standing',
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ]
+                },
+                frameRate: 20
+            });
+
+            layer.add(sprite).add(sprite2);
+            stage.add(layer);
+
+            var oldDraw = layer.draw;
+            var updateCount = 0;
+            layer.draw = function() {
+                updateCount++;
+                oldDraw.call(layer);
+            };
+
+            sprite.start();
+            sprite2.start();
+            setTimeout(function() {
+                sprite.stop();
+                sprite2.stop();
+                assert.equal(updateCount > 15, true);
+                assert.equal(updateCount < 27, true);
+                done();
+            }, 1000);
+
+
+        };
+        imageObj.src = 'assets/scorpion-sprite.png';
+    });
+
+    test('check is sprite running', function(done){
+        var imageObj = new Image();
+        imageObj.onload = function() {
+            var stage = addStage();
+            var layer = new Kinetic.Layer();
+
+
+            var sprite = new Kinetic.Sprite({
+                x: 200,
+                y: 50,
+                image: imageObj,
+                animation: 'standing',
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ]
+                },
+                frameRate: 50,
+                draggable: true,
+                shadowColor: 'black',
+                shadowBlur: 3,
+                shadowOffset: {x: 3, y:1},
+                shadowOpacity: 0.3
+            });
+
+            layer.add(sprite);
+            stage.add(layer);
+            assert.equal(sprite.isRunning(), false);
+            sprite.start();
+            assert.equal(sprite.isRunning(), true);
+            sprite.stop();
+            done();
+        };
+        imageObj.src = 'assets/scorpion-sprite.png';
+    });
+
+    test.skip('can change frame rate on fly', function(done){
+        var imageObj = new Image();
+        imageObj.onload = function() {
+            var stage = addStage();
+            var layer = new Kinetic.Layer();
+
+
+            var sprite = new Kinetic.Sprite({
+                x: 200,
+                y: 50,
+                image: imageObj,
+                animation: 'standing',
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ]
+                },
+                frameRate: 50,
+                draggable: true,
+                shadowColor: 'black',
+                shadowBlur: 3,
+                shadowOffset: {x: 3, y:1},
+                shadowOpacity: 0.3
+            });
+
+            layer.add(sprite);
+            stage.add(layer);
+            assert.equal(sprite.frameRate(), 50);
+            setTimeout(function(){
+                sprite.frameRate(100);
+                assert.equal(sprite.frameRate(), 100);
+                // don't run animation after change frame rate
+                assert.equal(sprite.anim.isRunning(), false);
+
+                sprite.start();
+            }, 23);
+
+            setTimeout(function(){
+                sprite.frameRate(52);
+                assert.equal(sprite.anim.isRunning(), true);
+                // for this moment should tick more than 2 times
+                // make sure that sprite is not restating after set frame rate
+                assert.equal(sprite.frameIndex() > 2, true);
+                done();
+            }, 68);
+        };
+        imageObj.src = 'assets/scorpion-sprite.png';
+    });
+
 });

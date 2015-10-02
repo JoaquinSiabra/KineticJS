@@ -34,7 +34,7 @@
 		var rgbv_se = pixelAt(idata, idata.width - 1, idata.height - 1);
 
 
-		var thres = threshold || 10; 
+		var thres = threshold || 10;
 		if (rgbDistance(rgbv_no, rgbv_ne) < thres && rgbDistance(rgbv_ne, rgbv_se) < thres && rgbDistance(rgbv_se, rgbv_so) < thres && rgbDistance(rgbv_so, rgbv_no) < thres) {
 
 			// Mean color
@@ -161,38 +161,37 @@
 	
 	/**
 	 * Mask Filter
-	 *
-	 * Only crop unicolor background images for instance
-	 *
 	 * @function
+	 * @name Mask
 	 * @memberof Kinetic.Filters
 	 * @param {Object} imageData
+	 * @example
+     * node.cache();
+     * node.filters([Kinetic.Filters.Mask]);
+     * node.threshold(0.1);
 	 */
-	Kinetic.Filters.Mask = function(idata) {
+	Kinetic.Filters.Mask = function(imageData) {
 		// Detect pixels close to the background color
-		var threshold = this.getFilterThreshold(),
-                    mask = backgroundMask(idata, threshold);
+		var threshold = this.threshold(),
+        mask = backgroundMask(imageData, threshold);
 		if (mask) {
 			// Erode
-			mask = erodeMask(mask, idata.width, idata.height);
+			mask = erodeMask(mask, imageData.width, imageData.height);
 
 			// Dilate
-			mask = dilateMask(mask, idata.width, idata.height);
+			mask = dilateMask(mask, imageData.width, imageData.height);
 
 			// Gradient
-			mask = smoothEdgeMask(mask, idata.width, idata.height);
+			mask = smoothEdgeMask(mask, imageData.width, imageData.height);
 
 			// Apply mask
-			applyMask(idata, mask);
+			applyMask(imageData, mask);
 			
 			// todo : Update hit region function according to mask
 		}
 
-		return idata;
+		return imageData;
 	};
 
-	Kinetic.Factory.addFilterGetterSetter(Kinetic.Image, 'filterThreshold', 0);
-
-	//threshold The RGB euclidian distance threshold (default : 10) 
-
+	Kinetic.Factory.addGetterSetter(Kinetic.Node, 'threshold', 0, null, Kinetic.Factory.afterSetFilter);
 })();

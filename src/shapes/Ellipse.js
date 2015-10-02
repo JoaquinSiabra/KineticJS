@@ -8,9 +8,17 @@
      * @constructor
      * @augments Kinetic.Shape
      * @param {Object} config
-     * @param {Number|Array|Object} config.radius defines x and y radius
+     * @param {Object} config.radius defines x and y radius
      * @@ShapeParams
      * @@NodeParams
+     * @example
+     * var ellipse = new Kinetic.Ellipse({
+     *   radius : {
+     *     x : 50,
+     *     y : 50
+     *   },
+     *   fill: 'red'
+     * });
      */
     Kinetic.Ellipse = function(config) {
         this.___init(config);
@@ -21,27 +29,29 @@
             // call super constructor
             Kinetic.Shape.call(this, config);
             this.className = ELLIPSE;
+            this.sceneFunc(this._sceneFunc);
         },
-        drawFunc: function(context) {
-            var r = this.getRadius();
+        _sceneFunc: function(context) {
+            var rx = this.getRadiusX(),
+                ry = this.getRadiusY();
 
             context.beginPath();
             context.save();
-            if(r.x !== r.y) {
-                context.scale(1, r.y / r.x);
+            if(rx !== ry) {
+                context.scale(1, ry / rx);
             }
-            context.arc(0, 0, r.x, 0, PIx2, false);
+            context.arc(0, 0, rx, 0, PIx2, false);
             context.restore();
             context.closePath();
             context.fillStrokeShape(this);
         },
         // implements Shape.prototype.getWidth()
         getWidth: function() {
-            return this.getRadius().x * 2;
+            return this.getRadiusX() * 2;
         },
         // implements Shape.prototype.getHeight()
         getHeight: function() {
-            return this.getRadius().y * 2;
+            return this.getRadiusY() * 2;
         },
         // implements Shape.prototype.setWidth()
         setWidth: function(width) {
@@ -61,55 +71,60 @@
     Kinetic.Util.extend(Kinetic.Ellipse, Kinetic.Shape);
 
     // add getters setters
-    Kinetic.Factory.addPointGetterSetter(Kinetic.Ellipse, 'radius', 0);
+    Kinetic.Factory.addComponentsGetterSetter(Kinetic.Ellipse, 'radius', ['x', 'y']);
 
     /**
-     * set radius
-     * @name setRadius
+     * get/set radius
+     * @name radius
      * @method
      * @memberof Kinetic.Ellipse.prototype
      * @param {Object} radius
      * @param {Number} radius.x
      * @param {Number} radius.y
-     */
-
-    /**
-     * get radius
-     * @name getRadius
-     * @method
-     * @memberof Kinetic.Ellipse.prototype
      * @returns {Object}
+     * @example
+     * // get radius
+     * var radius = ellipse.radius();
+     * 
+     * // set radius
+     * ellipse.radius({
+     *   x: 200,
+     *   y: 100
+     * });
      */
 
+    Kinetic.Factory.addGetterSetter(Kinetic.Ellipse, 'radiusX', 0);
     /**
-     * set radius x
-     * @name setRadiusX
+     * get/set radius x
+     * @name radiusX
      * @method
      * @memberof Kinetic.Ellipse.prototype
      * @param {Number} x
-     */
-
-    /**
-     * get radius x
-     * @name getRadiusX
-     * @method
-     * @memberof Kinetic.Ellipse.prototype
      * @returns {Number}
+     * @example
+     * // get radius x
+     * var radiusX = ellipse.radiusX();
+     * 
+     * // set radius x
+     * ellipse.radiusX(200);
      */
 
+    Kinetic.Factory.addGetterSetter(Kinetic.Ellipse, 'radiusY', 0);
     /**
-     * set radius y
-     * @name setRadiusY
+     * get/set radius y
+     * @name radiusY
      * @method
      * @memberof Kinetic.Ellipse.prototype
      * @param {Number} y
+     * @returns {Number}
+     * @example
+     * // get radius y
+     * var radiusY = ellipse.radiusY();
+     * 
+     * // set radius y
+     * ellipse.radiusY(200);
      */
 
-    /**
-     * get radius y
-     * @name getRadiusY
-     * @method
-     * @memberof Kinetic.Ellipse.prototype
-     * @returns {Number}
-     */
+    Kinetic.Collection.mapMethods(Kinetic.Ellipse);
+
 })();

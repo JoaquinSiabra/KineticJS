@@ -114,17 +114,17 @@ suite('Node', function() {
             strokeWidth: 4
         });
 
-        assert.equal(circle.cache.transform, undefined);
+        assert.equal(circle._cache.transform, undefined);
 
         layer.add(circle);
         stage.add(layer);
 
         // transform cache
-        assert.notEqual(circle.cache.transform, undefined);
+        assert.notEqual(circle._cache.transform, undefined);
         circle.setX(100);
-        assert.equal(circle.cache.transform, undefined);
+        assert.equal(circle._cache.transform, undefined);
         layer.draw();
-        assert.notEqual(circle.cache.transform, undefined);
+        assert.notEqual(circle._cache.transform, undefined);
     });
 
     // ======================================================
@@ -143,15 +143,15 @@ suite('Node', function() {
         stage.add(layer);
 
         // visible cache
-        assert.equal(circle.cache.visible, true);
+        assert.equal(circle._cache.visible, true);
         circle.hide();
-        assert.equal(circle.cache.visible, undefined);
+        assert.equal(circle._cache.visible, undefined);
         stage.draw();
-        assert.equal(circle.cache.visible, false);
+        assert.equal(circle._cache.visible, false);
         circle.show();
-        assert.equal(circle.cache.visible, undefined);
+        assert.equal(circle._cache.visible, undefined);
         layer.draw();
-        assert.equal(circle.cache.visible, true);
+        assert.equal(circle._cache.visible, true);
 
     });
 
@@ -171,14 +171,38 @@ suite('Node', function() {
         stage.add(layer);
 
         // shadow cache
-        assert.equal(circle.cache.hasShadow, false);
+        assert.equal(circle._cache.hasShadow, false);
         circle.setShadowColor('red');
         circle.setShadowOffset(10);
-        assert.equal(circle.cache.hasShadow, undefined);
+        assert.equal(circle._cache.hasShadow, undefined);
         layer.draw();
-        assert.equal(circle.cache.hasShadow, true);
+        assert.equal(circle._cache.hasShadow, true);
         layer.draw();
-        assert.equal(circle.cache.hasShadow, true);
+        assert.equal(circle._cache.hasShadow, true);
+
+    });
+
+    // ======================================================
+    test('has shadow', function() {
+        var stage = addStage();
+        var layer = new Kinetic.Layer();
+        var rect = new Kinetic.Rect({
+            x: 10,
+            y: stage.getHeight() / 3,
+            width: 100,
+            height: 100,
+            fill : "red",
+            stroke: 'black',
+            strokeWidth: 4,
+            draggable: true
+        });
+        layer.add(rect);
+        stage.add(layer);
+        rect.shadowEnabled(true);
+        rect.shadowColor("grey");
+        assert.equal(rect.hasShadow(), true);
+        rect.shadowEnabled(false);
+        assert.equal(rect.hasShadow(), false);
 
     });
 
@@ -198,11 +222,11 @@ suite('Node', function() {
         stage.add(layer);
 
         // opacity cache
-        assert.equal(circle.cache.absoluteOpacity, 1);
+        assert.equal(circle._cache.absoluteOpacity, 1);
         circle.setOpacity(0.5);
-        assert.equal(circle.cache.absoluteOpacity, undefined);
+        assert.equal(circle._cache.absoluteOpacity, undefined);
         layer.draw();
-        assert.equal(circle.cache.absoluteOpacity, 0.5);
+        assert.equal(circle._cache.absoluteOpacity, 0.5);
 
     });
 
@@ -226,11 +250,11 @@ suite('Node', function() {
         // prime the cache
         circle.isListening();
 
-        assert.equal(circle.cache.listening, true);
+        assert.equal(circle._cache.listening, true);
         circle.setListening(false);
-        assert.equal(circle.cache.listening, undefined);
+        assert.equal(circle._cache.listening, undefined);
         circle.isListening();
-        assert.equal(circle.cache.listening, false);
+        assert.equal(circle._cache.listening, false);
 
     });
 
@@ -251,7 +275,7 @@ suite('Node', function() {
 
         // stage cache
         var st = circle.getStage();
-        assert.equal(circle.cache.stage._id, stage._id);
+        assert.equal(circle._cache.stage._id, stage._id);
 
     });
 
@@ -371,7 +395,7 @@ suite('Node', function() {
             offsetChange = true;
         });
 
-        rect.setOffset({x:1, y:2});
+        rect.offset({x:1, y:2});
 
         assert.equal(offsetChange, true);
     });
@@ -401,6 +425,29 @@ suite('Node', function() {
     });
 
     // ======================================================
+    test('clone - check reference', function() {
+        var stage = addStage();
+        var layer = new Kinetic.Layer();
+
+        var line = new Kinetic.Line({
+            x: 0,
+            y: 0,
+            stroke : 'red',
+            points : [0, 0, 10, 10]
+        });
+
+        var clone = line.clone({
+            stroke: 'green'
+        });
+
+        layer.add(clone);
+        stage.add(layer);
+
+        assert.equal(line.points() === clone.points(), false);
+        assert.equal(clone.points().toString(), '0,0,10,10');
+    });
+
+    // ======================================================
     test('complex clone', function() {
         var stage = addStage();
         var layer = new Kinetic.Layer();
@@ -410,11 +457,14 @@ suite('Node', function() {
             width: 200,
             height: 50,
             fill: 'blue',
-            offset: [10, 10],
+            offsetX: 10,
+            offsetY: 10,
             shadowColor: 'black',
-            shadowOffset: [20, 20],
+            shadowOffsetX: 20,
+            shadowOffsetY: 20,
             draggable: true,
-            name: 'myRect'
+            name: 'myRect',
+            id : 'myRect'
         });
 
         var clicks = [];
@@ -436,6 +486,8 @@ suite('Node', function() {
 
         assert.equal(rect.getShadowColor(), 'black');
         assert.equal(clone.getShadowColor(), 'black');
+
+        assert.equal(clone.id() == undefined, true, 'do not clone id');
 
         clone.setShadowColor('green');
 
@@ -478,7 +530,8 @@ suite('Node', function() {
             width: 200,
             height: 50,
             fill: 'red',
-            offset: [10, 10],
+            offsetX: 10,
+            offsetY: 10,
             shadowColor: 'black',
             shadowOffset: [20, 20],
             name: 'myRect',
@@ -520,7 +573,7 @@ suite('Node', function() {
         assert.equal(clone.getY(), 0);
         assert.equal(clone.getDraggable(), true);
         // test alias
-        assert.equal(clone.isDraggable(), true);
+        assert.equal(clone.draggable(), true);
         assert.equal(clone.getName(), 'groupClone');
 
         assert.equal(group.getChildren().length, 2);
@@ -709,14 +762,14 @@ suite('Node', function() {
             fill: 'green',
             stroke: 'black',
             strokeWidth: 4,
-            rotationDeg: 10
+            rotation: 10
         });
 
-        assert.equal(rect.getRotationDeg(), 10);
-        rect.setRotationDeg(20);
-        assert.equal(rect.getRotationDeg(), 20);
-        rect.rotateDeg(20);
-        assert.equal(rect.getRotationDeg(), 40);
+        assert.equal(rect.rotation(), 10);
+        rect.rotation(20);
+        assert.equal(rect.rotation(), 20);
+        rect.rotate(20);
+        assert.equal(rect.rotation(), 40);
 
         layer.add(rect);
         stage.add(layer);
@@ -771,14 +824,14 @@ suite('Node', function() {
                 x: 0.5,
                 y: 0.5
             },
-            rotation: 20 * Math.PI / 180
+            rotation: 20
         });
 
         assert.equal(rect.getPosition().x, 200);
         assert.equal(rect.getPosition().y, 100);
         assert.equal(rect.getScale().x, 0.5);
         assert.equal(rect.getScale().y, 0.5);
-        assert.equal(rect.getRotation(), 20 * Math.PI / 180);
+        assert.equal(rect.getRotation(), 20);
 
         rect.setScale({x:2, y:0.3});
         assert.equal(rect.getScale().x, 2);
@@ -795,88 +848,34 @@ suite('Node', function() {
             var stage = addStage();
             var layer = new Kinetic.Layer();
 
-            var anims = {
-                standing: [{
-                    x: 0,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 52,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 105,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 158,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 210,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }, {
-                    x: 262,
-                    y: 0,
-                    width: 49,
-                    height: 109
-                }],
-
-                kicking: [{
-                    x: 0,
-                    y: 109,
-                    width: 45,
-                    height: 98
-                }, {
-                    x: 45,
-                    y: 109,
-                    width: 45,
-                    height: 98
-                }, {
-                    x: 95,
-                    y: 109,
-                    width: 63,
-                    height: 98
-                }, {
-                    x: 156,
-                    y: 109,
-                    width: 70,
-                    height: 98
-                }, {
-                    x: 229,
-                    y: 109,
-                    width: 60,
-                    height: 98
-                }, {
-                    x: 287,
-                    y: 109,
-                    width: 41,
-                    height: 98
-                }]
-            };
-
-            //for(var n = 0; n < 50; n++) {
-            sprite = new Kinetic.Sprite({
-                //x: Math.random() * stage.getWidth() - 30,
+            var sprite = new Kinetic.Sprite({
                 x: 200,
-                //y: Math.random() * stage.getHeight() - 50,
                 y: 50,
                 image: imageObj,
                 animation: 'standing',
-                animations: anims,
-                index: 0,
-                frameRate: Math.random() * 6 + 6,
+                animations: {
+                    standing: [
+                        0, 0, 49, 109,
+                        52, 0, 49, 109,
+                        105, 0, 49, 109,
+                        158, 0, 49, 109,
+                        210, 0, 49, 109,
+                        262, 0, 49, 109
+                    ],
+                    kicking: [
+                        0, 109, 45, 98,
+                        45, 109, 45, 98,
+                        95, 109, 63, 98,
+                        156, 109, 70, 98,
+                        229, 109, 60, 98,
+                        287, 109, 41, 98
+                    ]              
+                },
                 frameRate: 10,
                 draggable: true,
                 shadowColor: 'black',
                 shadowBlur: 3,
-                shadowOffset: [3, 1],
+                shadowOffset: {x: 3, y:1},
                 shadowOpacity: 0.3
             });
 
@@ -896,25 +895,7 @@ suite('Node', function() {
         var layer = new Kinetic.Layer();
         var group = new Kinetic.Group();
 
-        var points = [{
-            x: 73,
-            y: 250
-        }, {
-            x: 73,
-            y: 160
-        }, {
-            x: 340,
-            y: 23
-        }, {
-            x: 500,
-            y: 109
-        }, {
-            x: 499,
-            y: 139
-        }, {
-            x: 342,
-            y: 93
-        }];
+        var points = [73, 250, 73, 160, 340, 23, 500, 109, 499, 139, 342, 93];
 
         var poly = new Kinetic.Line({
             points: points,
@@ -955,39 +936,6 @@ suite('Node', function() {
         showHit(layer);
     });
 
-    // ======================================================
-    test('node caching width minimal configuration', function(done) {
-        var stage = addStage();
-        var layer = new Kinetic.Layer();
-        stage.add(layer);
-
-        var rect = new Kinetic.Rect({
-            width : 50,
-            height : 50,
-            fill: 'green',
-            stroke: 'blue',
-            strokeWidth: 5,
-            draggable: true
-        });
-
-        rect.toImage({
-            callback: function(imageObj) {
-                assert.equal(Kinetic.Util._isElement(imageObj), true);
-                var cachedShape = new Kinetic.Image({
-                    image: imageObj,
-                    draggable: true,
-                    stroke: 'red',
-                    strokeWidth: 5
-                });
-
-                layer.add(cachedShape);
-                layer.draw();
-                done();
-            }
-        });
-
-        showHit(layer);
-    });
     // ======================================================
     test('hide group', function() {
         var stage = addStage();
@@ -1111,7 +1059,7 @@ suite('Node', function() {
     });
 
     // ======================================================
-    test('set center offset after instantiation', function() {
+    test('set offset offset after instantiation', function() {
         var stage = addStage();
         var layer = new Kinetic.Layer();
         var rect = new Kinetic.Rect({
@@ -1129,45 +1077,20 @@ suite('Node', function() {
         layer.add(rect);
         stage.add(layer);
 
-        assert.equal(rect.getOffsetX(), 40);
-        assert.equal(rect.getOffsetY(), 20);
+        assert.equal(rect.offsetX(), 40);
+        assert.equal(rect.offsetY(), 20);
 
-        assert.equal(rect.getOffset().x, 40);
-        assert.equal(rect.getOffset().y, 20);
+        assert.equal(rect.offset().x, 40);
+        assert.equal(rect.offset().y, 20);
 
-        rect.setOffset({x:80, y:40});
+        rect.offset({x:80, y:40});
 
-        assert.equal(rect.getOffsetX(), 80);
-        assert.equal(rect.getOffsetY(), 40);
+        assert.equal(rect.offsetX(), 80);
+        assert.equal(rect.offsetY(), 40);
 
-        assert.equal(rect.getOffset().x, 80);
-        assert.equal(rect.getOffset().y, 40);
+        assert.equal(rect.offset().x, 80);
+        assert.equal(rect.offset().y, 40);
 
-    });
-
-    // ======================================================
-    test('rotation in degrees', function() {
-        var stage = addStage();
-        var layer = new Kinetic.Layer();
-        var rect = new Kinetic.Rect({
-            x: 200,
-            y: 100,
-            width: 100,
-            height: 50,
-            fill: 'green',
-            stroke: 'black',
-            strokeWidth: 4,
-            rotationDeg: 10
-        });
-
-        assert.equal(rect.getRotationDeg(), 10);
-        rect.setRotationDeg(20);
-        assert.equal(rect.getRotationDeg(), 20);
-        rect.rotateDeg(20);
-        assert.equal(rect.getRotationDeg(), 40);
-
-        layer.add(rect);
-        stage.add(layer);
     });
 
     // ======================================================
@@ -1234,7 +1157,7 @@ suite('Node', function() {
     });
 
     // ======================================================
-    test('test setOffset', function() {
+    test('test offset', function() {
         var stage = addStage();
         var layer = new Kinetic.Layer();
         var rect = new Kinetic.Rect({
@@ -1248,28 +1171,28 @@ suite('Node', function() {
         layer.add(rect);
         stage.add(layer);
 
-        rect.setOffset({x:1, y: 2});
-        assert.equal(rect.getOffset().x, 1);
-        assert.equal(rect.getOffset().y, 2);
+        rect.offset({x:1, y: 2});
+        assert.equal(rect.offset().x, 1);
+        assert.equal(rect.offset().y, 2);
 
-        rect.setOffset({x:3, y:4});
-        assert.equal(rect.getOffset().x, 3);
-        assert.equal(rect.getOffset().y, 4);
+        rect.offset({x:3, y:4});
+        assert.equal(rect.offset().x, 3);
+        assert.equal(rect.offset().y, 4);
 
-        rect.setOffset({
+        rect.offset({
             x: 5,
             y: 6
         });
-        assert.equal(rect.getOffset().x, 5);
-        assert.equal(rect.getOffset().y, 6);
+        assert.equal(rect.offset().x, 5);
+        assert.equal(rect.offset().y, 6);
 
-        rect.setOffsetX(7);
-        assert.equal(rect.getOffset().x, 7);
-        assert.equal(rect.getOffset().y, 6);
+        rect.offsetX(7);
+        assert.equal(rect.offset().x, 7);
+        assert.equal(rect.offset().y, 6);
 
-        rect.setOffsetY(8);
-        assert.equal(rect.getOffset().x, 7);
-        assert.equal(rect.getOffset().y, 8);
+        rect.offsetY(8);
+        assert.equal(rect.offset().x, 7);
+        assert.equal(rect.offset().y, 8);
 
     });
 
@@ -1510,7 +1433,7 @@ suite('Node', function() {
 
         //console.log(rect.getAbsoluteTransform().getTranslation())
 
-        stage.rotate(Math.PI / 3);
+        stage.rotate(180 / 3);
         stage.setScale({x:0.5, y:0.5});
 
         stage.draw();
@@ -1535,7 +1458,8 @@ suite('Node', function() {
             stroke: 'black',
             strokeWidth: 4,
             draggable: true,
-            offset: 30
+            offsetX: 30,
+            offsetY: 30
             //rotationDeg: 60
             //rotationDeg: Math.PI / 3
         });
@@ -1552,7 +1476,7 @@ suite('Node', function() {
     });
 
     // ======================================================
-    test('test getPosition and getAbsolutePosition for transformed parent with center offset', function() {
+    test('test getPosition and getAbsolutePosition for transformed parent with offset offset', function() {
         var side = 100;
         var diagonal = Math.sqrt(side * side * 2);
 
@@ -1564,7 +1488,7 @@ suite('Node', function() {
         var group = new Kinetic.Group({
             name: 'groupName',
             id: 'groupId',
-            rotationDeg: 45,
+            rotation: 45,
             offset: {x:side / 2, y:side / 2},
             x: diagonal / 2,
             y: diagonal / 2
@@ -1597,6 +1521,38 @@ suite('Node', function() {
 
         assert.equal(Math.round(marker.getAbsolutePosition().x), Math.round(diagonal), 'marker absolute position x should be about ' + Math.round(diagonal) + ' but is about ' + Math.round(marker.getAbsolutePosition().x));
         assert.equal(Math.round(marker.getAbsolutePosition().y), Math.round(diagonal / 2), 'marker absolute position y should be about ' + Math.round(diagonal / 2) + ' but is about ' + Math.round(marker.getAbsolutePosition().y));
+    });
+
+    // ======================================================
+    test('test dragDistance', function() {
+        var stage = addStage();
+        var layer = new Kinetic.Layer();
+        var rect1 = new Kinetic.Rect({
+            x: 1,
+            y: 2,
+            width: 100,
+            height: 50,
+            fill: 'red'
+        });
+
+        var group = new Kinetic.Group({
+            dragDistance : 2
+        });
+
+        var rect2 = new Kinetic.Rect({
+            x: 3,
+            width: 100,
+            height: 50,
+            fill: 'red'
+        });
+        group.add(rect2);
+
+        layer.add(rect1).add(group);
+        stage.add(layer);
+
+        assert.equal(rect1.dragDistance(), 0);
+        assert.equal(group.dragDistance(), 2);
+        assert.equal(rect2.dragDistance(), 2);
     });
 
     // ======================================================
@@ -1805,6 +1761,20 @@ suite('Node', function() {
         assert.equal(circle.eventListeners['click'], undefined);
         assert.equal(circle.eventListeners['touch'], undefined);
 
+
+        //  test remove all events
+        circle.on('click.kinetic', function() {
+        });
+        circle.on('click', function() {
+        });
+        circle.on('boo', function() {
+        });
+        assert.equal(circle.eventListeners['click'].length, 2);
+        assert.equal(circle.eventListeners['boo'].length, 1);
+        circle.off();
+        assert.equal(circle.eventListeners['boo'], undefined);
+        // should not remove kinetic listeners
+        assert.equal(circle.eventListeners['click'].length, 1);
         stage.add(layer);
         layer.add(circle);
         layer.draw();
@@ -1891,7 +1861,7 @@ suite('Node', function() {
         });
         var group = new Kinetic.Group({
             x: 100,
-            rotationDeg: 90
+            rotation: 90
         });
 
         var rect = new Kinetic.Rect({
@@ -2220,7 +2190,7 @@ suite('Node', function() {
         var stage = Kinetic.Node.create(json, container);
 
         stage.find('#myTriangle').each(function(node) {
-            node.setDrawFunc(drawTriangle);
+            node.sceneFunc(drawTriangle);
         });
 
         stage.draw();
@@ -2652,7 +2622,74 @@ suite('Node', function() {
   });
 
   // ======================================================
-  test('ancestorTransformEnabled', function(){
+  test('group, listening, & shouldDrawHit', function(){
+    var stage = addStage();
+
+    var layer = new Kinetic.Layer({
+        listening : false
+    });
+    stage.add(layer);
+
+    var group = new Kinetic.Group({
+        listening : false
+    });
+    layer.add(group);
+
+    var rect = new Kinetic.Rect({
+      x: 100,
+      y: 50,
+      width: 100,
+      height: 50,
+      fill: 'green',
+      stroke: 'blue',
+      listening : true
+    });
+    group.add(rect);
+    layer.draw();
+
+    showHit(layer);
+
+    assert.equal(rect.isListening(), true);
+    assert.equal(rect.shouldDrawHit(), true);
+
+    assert.equal(group.isListening(), false);
+    assert.equal(group.shouldDrawHit(), true, 'hit graph for group');
+
+    assert.equal(layer.isListening(), false);
+    assert.equal(layer.shouldDrawHit(), true, 'hit graph for layer');
+
+    var layerClick = 0;
+    var groupClick = 0;
+    var rectClick = 0;
+
+    rect.on('click', function() {
+        rectClick += 1;
+    });
+    group.on('click', function() {
+        groupClick += 1;
+    });
+    layer.on('click', function() {
+        layerClick += 1;
+    });
+
+    var top = stage.content.getBoundingClientRect().top;
+    stage._mousedown({
+        clientX: 150,
+        clientY: 75 + top
+    });
+    Kinetic.DD._endDragBefore();
+    stage._mouseup({
+        clientX: 150,
+        clientY: 75 + top
+    });
+
+    assert.equal(rectClick, 1, 'click on rectange');
+    assert.equal(groupClick, 0, 'no click on group');
+    assert.equal(layerClick, 0, 'no click on layer');
+  });
+
+    // ======================================================
+  test('isVisible', function(){
     var stage = addStage();
     var layer = new Kinetic.Layer();
     var group = new Kinetic.Group();
@@ -2671,27 +2708,337 @@ suite('Node', function() {
     layer.add(group);
     stage.add(layer);
 
-    assert.equal(circle.isAncestorTransformsEnabled(), true);
+    assert.equal(stage.isVisible(), true);
+    assert.equal(layer.isVisible(), true);
+    assert.equal(circle.isVisible(), true);
 
-    circle.disableAncestorTransforms();
+    stage.setVisible(false);
 
-    assert.equal(circle.isAncestorTransformsEnabled(), false);
+    assert.equal(stage.isVisible(), false);
+    assert.equal(layer.isVisible(), false);
+    assert.equal(circle.isVisible(), false);
 
-    circle.enableAncestorTransforms();
+    stage.setVisible('inherit');
+    layer.setVisible(false);
 
-    assert.equal(circle.isAncestorTransformsEnabled(), true);
+    assert.equal(stage.isVisible(), true);
+    assert.equal(layer.isVisible(), false);
+    assert.equal(circle.isVisible(), false);
+
+    layer.setVisible('inherit');
+    circle.setVisible(false);
+
+    assert.equal(stage.isVisible(), true);
+    assert.equal(layer.isVisible(), true);
+    assert.equal(circle.isVisible(), false);
+
+    circle.setVisible('inherit');
+    stage.setVisible(true);
+
+    assert.equal(stage.isVisible(), true);
+    assert.equal(layer.isVisible(), true);
+    assert.equal(circle.isVisible(), true);
+
+    stage.setVisible('inherit');
+    layer.setVisible(true);
+
+    assert.equal(stage.isVisible(), true);
+    assert.equal(layer.isVisible(), true);
+    assert.equal(circle.isVisible(), true);
+
+    layer.setVisible('inherit');
+    circle.setVisible(true);
+
+    assert.equal(stage.isVisible(), true);
+    assert.equal(layer.isVisible(), true);
+    assert.equal(circle.isVisible(), true);
+
+  });
+
+  test('overloaders', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group();
+    var circle = new Kinetic.Circle({
+        x: 100,
+        y: 100,
+        radius: 70,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4,
+        name: 'myCircle',
+        draggable: true
+    });
+
+    group.add(circle);
+    layer.add(group);
+    stage.add(layer);
+
+    circle.x(1);
+    assert.equal(circle.x(), 1);
+
+    circle.y(2);
+    assert.equal(circle.y(), 2);
+
+    circle.opacity(0.5);
+    assert.equal(circle.opacity(), 0.5);
+
+    circle.name('foo');
+    assert.equal(circle.name(), 'foo'); 
+
+    circle.id('bar');
+    assert.equal(circle.id(), 'bar'); 
+
+    circle.rotation(2);
+    assert.equal(circle.rotation(), 2);
+
+    circle.scale({x: 2, y: 2});
+    assert.equal(circle.scale().x, 2);
+    assert.equal(circle.scale().y, 2);
+
+    circle.scaleX(5);
+    assert.equal(circle.scaleX(), 5);
+
+    circle.scaleY(8);
+    assert.equal(circle.scaleY(), 8);
+
+    circle.skew({x: 2, y: 2});
+    assert.equal(circle.skew().x, 2);
+    assert.equal(circle.skew().y, 2);
+
+    circle.skewX(5);
+    assert.equal(circle.skewX(), 5);
+
+    circle.skewY(8);
+    assert.equal(circle.skewY(), 8);
+
+    circle.offset({x: 2, y: 2});
+    assert.equal(circle.offset().x, 2);
+    assert.equal(circle.offset().y, 2);
+
+    circle.offsetX(5);
+    assert.equal(circle.offsetX(), 5);
+
+    circle.offsetY(8);
+    assert.equal(circle.offsetY(), 8);
+
+    circle.width(23);
+    assert.equal(circle.width(), 23); 
+
+    circle.height(11);
+    assert.equal(circle.height(), 11); 
+
+    circle.listening(false);
+    assert.equal(circle.listening(), false);
+
+    circle.visible(false);
+    assert.equal(circle.visible(), false); 
+
+    circle.transformsEnabled(false);
+    assert.equal(circle.transformsEnabled(), false);  
+
+    circle.position({x: 6, y: 8});
+    assert.equal(circle.position().x, 6);
+    assert.equal(circle.position().y, 8);
+
+    // because the height was set to 11, the width
+    // is also 11 because the node is a circle
+    assert.equal(circle.size().width, 11);
+    assert.equal(circle.size().height, 11);
+  });
+
+  test('cache shape', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group();
+    var circle = new Kinetic.Circle({
+        x: 74,
+        y: 74,
+        radius: 70,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4,
+        name: 'myCircle',
+        draggable: true
+    });
+
+    group.add(circle);
+    layer.add(group);
+    stage.add(layer);
+
+    assert.equal(circle._cache.canvas, undefined);
+
+    circle.cache({
+        x: -74,
+        y: -74,
+        width: 148,
+        height: 148
+    }).offset({
+        x: 74,
+        y: 74
+    });
+
+    assert.notEqual(circle._cache.canvas.scene, undefined);
+    assert.notEqual(circle._cache.canvas.hit, undefined);
+
+    layer.draw();
+
+
+    //document.body.appendChild(circle._cache.canvas.scene._canvas);
+    // document.body.appendChild(circle._cache.canvas.hit._canvas);
+
+    showHit(layer);
+                                        
+    //assert.equal(layer.getContext().getTrace(), 'clearRect(0,0,578,200);save();transform(1,0,0,1,74,74);beginPath();arc(0,0,70,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();clearRect(0,0,578,200);save();transform(1,0,0,1,0,0);drawImage([object HTMLCanvasElement],0,0);restore();');
+
+    //assert.equal(circle._cache.canvas.scene.getContext().getTrace(), 'save();translate(74,74);beginPath();arc(0,0,70,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();');
+  });
+
+  test('cache shape before adding to layer', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group({
+        x : 0,
+        y : 0
+    });
+    var rect = new Kinetic.Rect({
+        x: 35,
+        y: 35,
+        width: 50,
+        height : 50,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4,
+        name: 'myCircle',
+        offsetX : 25,
+        offsetY: 25,
+        rotation : 45,
+        draggable: true,
+    });
+    group.add(rect);
+    
+
+    assert.equal(rect._cache.canvas, undefined);
+    group.cache({
+        x: 0,
+        y: 0,
+        width: 148,
+        height: 148
+    });
+    stage.add(layer);   
+
+    assert(group._cache.canvas.scene);
+    assert(group._cache.canvas.hit);
+
+    
+    layer.add(group);
+    layer.draw();
+    var shape = stage.getIntersection({
+        x : 5,
+        y : 5
+    });
+    assert(!shape, 'no shape (rotate applied)');
+    shape = stage.getIntersection({
+        x : 35,
+        y : 35
+    });
+    assert.equal(shape, rect, 'rect found');
+
+    assert.equal(layer.canvas.getContext().getTrace(), 'clearRect(0,0,578,200);clearRect(0,0,578,200);save();transform(1,0,0,1,0,0);drawImage([object HTMLCanvasElement],0,0);restore();');
+  });
+
+
+  test('cache shape inside transformed group', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group({
+        x: 50,
+        y: 50
+    });
+    var circle = new Kinetic.Circle({
+        x: 74,
+        y: 74,
+        radius: 70,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4,
+        name: 'myCircle',
+        draggable: true
+    });
+
+    group.add(circle);
+    layer.add(group);
+    stage.add(layer);
+
+    assert.equal(circle._cache.canvas, undefined);
+
+    circle.cache({
+        x: -74,
+        y: -74,
+        width: 148,
+        height: 148
+    }).offset({
+        x: 74,
+        y: 74
+    });
+
+    assert.notEqual(circle._cache.canvas.scene, undefined);
+    assert.notEqual(circle._cache.canvas.hit, undefined);
+
+    layer.draw();
+
+
+    //document.body.appendChild(circle._cache.canvas.scene._canvas);
+    // document.body.appendChild(circle._cache.canvas.hit._canvas);
+
+    showHit(layer)
+                                        
+    assert.equal(layer.getContext().getTrace(), 'clearRect(0,0,578,200);save();transform(1,0,0,1,124,124);beginPath();arc(0,0,70,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();clearRect(0,0,578,200);save();transform(1,0,0,1,50,50);drawImage([object HTMLCanvasElement],0,0);restore();');
+    assert.equal(circle._cache.canvas.scene.getContext().getTrace(), 'save();translate(74,74);translate(-74,-74);save();transform(1,0,0,1,74,74);beginPath();arc(0,0,70,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();restore();');
+  });
+
+  test('cache shape thats larger than stage', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group();
+    var circle = new Kinetic.Circle({
+        x: 74,
+        y: 74,
+        radius: 300,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4,
+        name: 'myCircle',
+        draggable: true
+    });
+
+    group.add(circle);
+    layer.add(group);
+    stage.add(layer);
+
+    assert.equal(circle._cache.canvas, undefined);
+
+    circle.cache({
+        x: -304,
+        y: -304,
+        width: 608,
+        height: 608
+    }).offset({
+        x: 304,
+        y: 304
+    });
+    layer.draw();
 
 
   });
 
-    // ======================================================
-  test('transformEnabled', function(){
+  test('show cache border', function(){
     var stage = addStage();
     var layer = new Kinetic.Layer();
     var group = new Kinetic.Group();
     var circle = new Kinetic.Circle({
-        x: 100,
-        y: 100,
+        x: 200,
+        y: 74,
         radius: 70,
         fill: 'green',
         stroke: 'black',
@@ -2704,18 +3051,277 @@ suite('Node', function() {
     layer.add(group);
     stage.add(layer);
 
-    assert.equal(circle.isTransformsEnabled(), true);
+    assert.equal(circle._cache.canvas, undefined);
 
-    circle.disableTransforms();
+    circle.cache({
+        x: -74,
+        y: -74,
+        width: 148,
+        height: 148,
+        drawBorder: true
+    }).offset({
+        x: 74,
+        y: 74
+    });
 
-    assert.equal(circle.isTransformsEnabled(), false);
+    assert.notEqual(circle._cache.canvas.scene, undefined);
+    assert.notEqual(circle._cache.canvas.hit, undefined);
 
     layer.draw();
 
-    circle.enableTransforms();
 
-    assert.equal(circle.isTransformsEnabled(), true);
+    showHit(layer);
 
 
+    //console.log(circle._cache.canvas.scene.getContext().getTrace());
+
+    // make sure the border rectangle was drawn onto the cached scene canvas
+    assert.equal(circle._cache.canvas.scene.getContext().getTrace(),'save();save();beginPath();rect(0,0,148,148);closePath();strokeStyle=red;lineWidth=5;stroke();restore();translate(74,74);translate(-200,-74);save();transform(1,0,0,1,200,74);beginPath();arc(0,0,70,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();restore();');
+  });
+
+  test('cache group', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group({
+        x: 100,
+        y: 100,
+        draggable: true
+    });
+    var top = new Kinetic.Circle({
+        x: 0,
+        y: -70,
+        radius: 30,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var right = new Kinetic.Circle({
+        x: 70,
+        y: 0,
+        radius: 30,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var bottom = new Kinetic.Circle({
+        x: 0,
+        y: 70,
+        radius: 30,
+        fill: 'blue',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var left = new Kinetic.Circle({
+        x: -70,
+        y: 0,
+        radius: 30,
+        fill: 'yellow',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+
+    group.add(top).add(right).add(bottom).add(left);
+    layer.add(group);
+    stage.add(layer);
+
+    //console.log('---before cache')
+
+    assert.equal(group._cache.canvas, undefined);
+
+    group.cache({
+        width: 80,
+        height: 80
+    });
+
+    assert.notEqual(group._cache.canvas.scene, undefined);
+    assert.notEqual(group._cache.canvas.hit, undefined);
+
+    //console.log('---before first draw')
+    layer.draw();
+
+    //console.log(layer.getContext().getTrace())
+
+    //document.body.appendChild(group._cache.canvas.scene._canvas);
+
+    //console.log('---before second draw')
+    layer.draw();
+
+    assert.equal(layer.getContext().getTrace(), 'clearRect(0,0,578,200);save();transform(1,0,0,1,100,30);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1,0,0,1,170,100);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=red;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1,0,0,1,100,170);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=blue;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1,0,0,1,30,100);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=yellow;fill();lineWidth=4;strokeStyle=black;stroke();restore();clearRect(0,0,578,200);save();transform(1,0,0,1,100,100);drawImage([object HTMLCanvasElement],0,0);restore();clearRect(0,0,578,200);save();transform(1,0,0,1,100,100);drawImage([object HTMLCanvasElement],0,0);restore();');
+
+    showHit(layer);
+  });
+
+  test('cache transformed group', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer();
+    var group = new Kinetic.Group({
+        x: 100,
+        y: 100,
+        draggable: true,
+        rotation: 20,
+        scaleX: 2,
+        scaleY: 2
+    });
+    var top = new Kinetic.Circle({
+        x: 0,
+        y: -70,
+        radius: 50,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var right = new Kinetic.Circle({
+        x: 70,
+        y: 0,
+        radius: 30,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var bottom = new Kinetic.Circle({
+        x: 0,
+        y: 70,
+        radius: 30,
+        fill: 'blue',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var left = new Kinetic.Circle({
+        x: -70,
+        y: 0,
+        radius: 30,
+        fill: 'yellow',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+
+    group.add(top).add(right).add(bottom).add(left);
+    layer.add(group);
+    stage.add(layer);
+
+    //console.log('---before cache')
+
+    //console.log(group.getAbsoluteTransform().getTranslation())
+
+    group.cache({
+        x: -104,
+        y: -104,
+        width: 208,
+        height: 208
+    });
+
+    group.offsetX(104).offsetY(104);
+
+    //console.log('--after cache');
+    //console.log(group.getAbsoluteTransform().getTranslation())
+    //console.log(group.getAbsolutePosition());
+    //console.log('---before first draw')
+    layer.draw();
+
+    //document.body.appendChild(group._cache.canvas.scene._canvas);
+    //console.log('---before second draw')
+    layer.draw();
+
+    //console.log(layer.getContext().getTrace())
+    assert.equal(layer.getContext().getTrace(), 'clearRect(0,0,578,200);save();transform(1.879,0.684,-0.684,1.879,147.883,-31.557);beginPath();arc(0,0,50,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1.879,0.684,-0.684,1.879,231.557,147.883);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=red;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1.879,0.684,-0.684,1.879,52.117,231.557);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=blue;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1.879,0.684,-0.684,1.879,-31.557,52.117);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=yellow;fill();lineWidth=4;strokeStyle=black;stroke();restore();clearRect(0,0,578,200);save();transform(1.879,0.684,-0.684,1.879,-24.316,-166.596);drawImage([object HTMLCanvasElement],0,0);restore();clearRect(0,0,578,200);save();transform(1.879,0.684,-0.684,1.879,-24.316,-166.596);drawImage([object HTMLCanvasElement],0,0);restore();');
+    showHit(layer);
+  });
+
+  test('cache layer', function(){
+    var stage = addStage();
+    var layer = new Kinetic.Layer({
+        x: 100,
+        y: 100,
+        draggable: true
+    });
+    var group = new Kinetic.Group();
+    var top = new Kinetic.Circle({
+        x: 0,
+        y: -70,
+        radius: 30,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var right = new Kinetic.Circle({
+        x: 70,
+        y: 0,
+        radius: 30,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var bottom = new Kinetic.Circle({
+        x: 0,
+        y: 70,
+        radius: 30,
+        fill: 'blue',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+    var left = new Kinetic.Circle({
+        x: -70,
+        y: 0,
+        radius: 30,
+        fill: 'yellow',
+        stroke: 'black',
+        strokeWidth: 4
+    });
+
+    group.add(top).add(right).add(bottom).add(left);
+    layer.add(group);
+    stage.add(layer);
+
+    assert.equal(layer._cache.canvas, undefined);
+
+    layer.cache({
+        width: 80,
+        height: 80
+    });
+
+    assert.notEqual(layer._cache.canvas.scene, undefined);
+    assert.notEqual(layer._cache.canvas.hit, undefined);
+
+
+    layer.draw();
+    layer.draw();
+
+    //console.log(layer.getContext().getTrace());
+    assert.equal(layer.getContext().getTrace(), 'clearRect(0,0,578,200);save();transform(1,0,0,1,100,30);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=green;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1,0,0,1,170,100);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=red;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1,0,0,1,100,170);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=blue;fill();lineWidth=4;strokeStyle=black;stroke();restore();save();transform(1,0,0,1,30,100);beginPath();arc(0,0,30,0,6.283,false);closePath();fillStyle=yellow;fill();lineWidth=4;strokeStyle=black;stroke();restore();clearRect(0,0,578,200);save();transform(1,0,0,1,100,100);drawImage([object HTMLCanvasElement],0,0);restore();clearRect(0,0,578,200);save();transform(1,0,0,1,100,100);drawImage([object HTMLCanvasElement],0,0);restore();');
+
+
+    // make sure that the hit graph is also rendered after caching the layer
+    assert.equal(layer.hitCanvas.getContext().getTrace(true), 'clearRect();save();transform();beginPath();arc();closePath();save();fillStyle;fill();restore();lineWidth;strokeStyle;stroke();restore();save();transform();beginPath();arc();closePath();save();fillStyle;fill();restore();lineWidth;strokeStyle;stroke();restore();save();transform();beginPath();arc();closePath();save();fillStyle;fill();restore();lineWidth;strokeStyle;stroke();restore();save();transform();beginPath();arc();closePath();save();fillStyle;fill();restore();lineWidth;strokeStyle;stroke();restore();clearRect();clearRect();save();transform();drawImage();restore();clearRect();save();transform();drawImage();restore();');
+
+    showHit(layer);
+
+  });
+
+  test('stage.toObject() when stage contains an image', function(done){
+      var imageObj = new Image();
+      imageObj.onload = function() {
+          var stage = addStage();
+
+          var layer = new Kinetic.Layer();
+          darth = new Kinetic.Image({
+              x: 200,
+              y: 60,
+              image: imageObj,
+              width: 100,
+              height: 100,
+              offset: {x: 50, y: 30},
+              crop: {x: 135, y: 7, width: 167, height: 134},
+              draggable: true
+          });
+
+          layer.add(darth);
+          stage.add(layer);
+
+          assert.equal(stage.toObject().className, 'Stage');
+
+          done();
+
+      };
+      imageObj.src = 'assets/darth-vader.jpg';
   });
 });

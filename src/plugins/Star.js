@@ -11,15 +11,15 @@
      * @@shapeParams
      * @@nodeParams
      * @example
-     * var star = new Kinetic.Star({<br>
-     *   x: 100,<br>
-     *   y: 200,<br>
-     *   numPoints: 5,<br>
-     *   innerRadius: 70,<br>
-     *   outerRadius: 70,<br>
-     *   fill: 'red',<br>
-     *   stroke: 'black',<br>
-     *   strokeWidth: 4<br>
+     * var star = new Kinetic.Star({
+     *   x: 100,
+     *   y: 200,
+     *   numPoints: 5,
+     *   innerRadius: 70,
+     *   outerRadius: 70,
+     *   fill: 'red',
+     *   stroke: 'black',
+     *   strokeWidth: 4
      * });
      */
     Kinetic.Star = function(config) {
@@ -31,23 +31,23 @@
             // call super constructor
             Kinetic.Shape.call(this, config);
             this.className = 'Star';
+            this.sceneFunc(this._sceneFunc);
         },
-        drawFunc: function(context) {
-            var _context = context._context, 
-                innerRadius = this.attrs.innerRadius, 
-                outerRadius = this.attrs.outerRadius, 
-                numPoints = this.attrs.numPoints;
+        _sceneFunc: function(context) {
+            var innerRadius = this.innerRadius(),
+                outerRadius = this.outerRadius(),
+                numPoints = this.numPoints();
 
-            _context.beginPath();
-            _context.moveTo(0, 0 - this.attrs.outerRadius);
+            context.beginPath();
+            context.moveTo(0, 0 - outerRadius);
 
             for(var n = 1; n < numPoints * 2; n++) {
                 var radius = n % 2 === 0 ? outerRadius : innerRadius;
                 var x = radius * Math.sin(n * Math.PI / numPoints);
                 var y = -1 * radius * Math.cos(n * Math.PI / numPoints);
-                _context.lineTo(x, y);
+                context.lineTo(x, y);
             }
-            _context.closePath();
+            context.closePath();
 
             context.fillStrokeShape(this);
         }
@@ -55,7 +55,7 @@
     Kinetic.Util.extend(Kinetic.Star, Kinetic.Shape);
 
     // add getters setters
-    Kinetic.Factory.addGetterSetter(Kinetic.Star, 'numPoints', 0);
+    Kinetic.Factory.addGetterSetter(Kinetic.Star, 'numPoints', 5);
 
     /**
      * set number of points
@@ -105,4 +105,6 @@
      * @method
      * @memberof Kinetic.Star.prototype
      */
+
+    Kinetic.Collection.mapMethods(Kinetic.Star);
 })();

@@ -270,7 +270,7 @@ suite('Layer', function() {
         var circle = new Kinetic.Circle({
             x: stage.getWidth() / 2,
             y: stage.getHeight() / 2,
-            radius: 70,
+            radius: 70, 
             fill: 'red',
             stroke: 'black',
             strokeWidth: 4
@@ -279,17 +279,75 @@ suite('Layer', function() {
         layer.add(circle);
         stage.add(layer);
 
-        assert.equal(layer.isHitGraphEnabled(), true);
+        assert.equal(layer.hitGraphEnabled(), true);
         assert.equal(layer.shouldDrawHit(), true);
 
         layer.disableHitGraph();
 
-        assert.equal(layer.isHitGraphEnabled(), false);
+        assert.equal(layer.hitGraphEnabled(), false);
         assert.equal(layer.shouldDrawHit(), false);  
 
         layer.enableHitGraph();
 
-        assert.equal(layer.isHitGraphEnabled(), true);
+        assert.equal(layer.hitGraphEnabled(), true);
         assert.equal(layer.shouldDrawHit(), true);
+    });
+
+    // ======================================================
+    test.skip('hit graph caching', function() {
+        var stage = addStage();
+        var layer = new Kinetic.Layer();
+        var originGetImageData = layer.getHitCanvas().getContext().getImageData;
+        var count = 0;
+        layer.getHitCanvas().getContext().getImageData = function() {
+            count += 1;
+            return originGetImageData.apply(this, arguments);
+        };
+
+        stage.add(layer);
+
+        var circle = new Kinetic.Circle({
+            x: stage.getWidth() / 2,
+            y: stage.getHeight() / 2,
+            radius: 70, 
+            fill: 'red',
+            stroke: 'black',
+            strokeWidth: 4
+        });
+        layer.add(circle);
+        layer.draw();
+        assert.equal(count, 0, 'draw should not touch getImageData');
+        var top = stage.content.getBoundingClientRect().top;
+        stage._mousemove({
+            clientX: stage.getWidth() / 2,
+            clientY: stage.getHeight() / 2 + top
+        });
+
+        // while mouse event we need hit canvas info
+        assert.equal(count, 1, 'getImageData should be called once');
+
+        stage._mousemove({
+            clientX: stage.getWidth() / 2,
+            clientY: stage.getHeight() / 2 + top + 2
+        });
+
+        assert.equal(count, 1, 'getImageData should not be called, because data is cached');
+
+        var group = new Kinetic.Group();
+        group.cache({
+            width : 1,
+            height : 1
+        });
+        layer.add(group);
+
+        group.draw();
+
+        stage._mousemove({
+            clientX: stage.getWidth() / 2,
+            clientY: stage.getHeight() / 2 + top + 2
+        });
+
+        // after drawing group hit cache should be cleared
+        assert.equal(count, 2, 'while creating new cache getImageData should be called');
     });
 });

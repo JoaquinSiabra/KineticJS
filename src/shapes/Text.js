@@ -1,7 +1,7 @@
 (function() {
     // constants
     var AUTO = 'auto',
-        CANVAS = 'canvas',
+        //CANVAS = 'canvas',
         CENTER = 'center',
         CHANGE_KINETIC = 'Change.kinetic',
         CONTEXT_2D = '2d',
@@ -18,11 +18,11 @@
         WORD = 'word',
         CHAR = 'char',
         NONE = 'none',
-        ATTR_CHANGE_LIST = ['fontFamily', 'fontSize', 'fontStyle', 'padding', 'align', 'lineHeight', 'text', 'width', 'height', 'wrap'],
+        ATTR_CHANGE_LIST = ['fontFamily', 'fontSize', 'fontStyle', 'fontVariant', 'padding', 'align', 'lineHeight', 'text', 'width', 'height', 'wrap'],
 
         // cached variables
         attrChangeListLen = ATTR_CHANGE_LIST.length,
-        dummyContext = document.createElement(CANVAS).getContext(CONTEXT_2D);
+        dummyContext = Kinetic.Util.createCanvasElement().getContext(CONTEXT_2D);
 
     /**
      * Text constructor
@@ -33,6 +33,7 @@
      * @param {String} [config.fontFamily] default is Arial
      * @param {Number} [config.fontSize] in pixels.  Default is 12
      * @param {String} [config.fontStyle] can be normal, bold, or italic.  Default is normal
+     * @param {String} [config.fontVariant] can be normal or small-caps.  Default is normal
      * @param {String} config.text
      * @param {String} [config.align] can be left, center, or right
      * @param {Number} [config.padding]
@@ -43,13 +44,13 @@
      * @@shapeParams
      * @@nodeParams
      * @example
-     * var text = new Kinetic.Text({<br>
-     *   x: stage.getWidth() / 2,<br>
-     *   y: 15,<br>
-     *   text: 'Simple Text',<br>
-     *   fontSize: 30,<br>
-     *   fontFamily: 'Calibri',<br>
-     *   fill: 'green'<br>
+     * var text = new Kinetic.Text({
+     *   x: 10,
+     *   y: 15,
+     *   text: 'Simple Text',
+     *   fontSize: 30,
+     *   fontFamily: 'Calibri',
+     *   fill: 'green'
      * });
      */
     Kinetic.Text = function(config) {
@@ -86,8 +87,10 @@
             }
 
             this._setTextData();
+            this.sceneFunc(this._sceneFunc);
+            this.hitFunc(this._hitFunc);
         },
-        drawFunc: function(context) {
+        _sceneFunc: function(context) {
             var p = this.getPadding(),
                 textHeight = this.getTextHeight(),
                 lineHeightPx = this.getLineHeight() * textHeight,
@@ -125,7 +128,7 @@
             }
             context.restore();
         },
-        drawHitFunc: function(context) {
+        _hitFunc: function(context) {
             var width = this.getWidth(),
                 height = this.getHeight();
 
@@ -134,15 +137,10 @@
             context.closePath();
             context.fillStrokeShape(this);
         },
-        /**
-         * set text
-         * @method
-         * @memberof Kinetic.Text.prototype
-         * @param {String} text
-         */
         setText: function(text) {
             var str = Kinetic.Util._isString(text) ? text : text.toString();
             this._setAttr(TEXT, str);
+            return this;
         },
         /**
          * get width of text area, which includes padding
@@ -196,7 +194,7 @@
             };
         },
         _getContextFont: function() {
-            return this.getFontStyle() + SPACE + this.getFontSize() + PX_SPACE + this.getFontFamily();
+            return this.getFontStyle() + SPACE + this.getFontVariant() + SPACE + this.getFontSize() + PX_SPACE + this.getFontFamily();
         },
         _addTextLine: function (line, width) {
             return this.textArr.push({text: line, width: width});
@@ -223,7 +221,7 @@
 
             this.textArr = [];
             dummyContext.save();
-            dummyContext.font = this.getFontStyle() + SPACE + fontSize + PX_SPACE + this.getFontFamily();
+            dummyContext.font = this._getContextFont();
             for (var i = 0, max = lines.length; i < max; ++i) {
                 var line = lines[i],
                     lineWidth = this._getTextWidth(line);
@@ -270,6 +268,7 @@
                                 }
                             }
                             this._addTextLine(match, matchWidth);
+                            textWidth = Math.max(textWidth, matchWidth);
                             currentHeightPx += lineHeightPx;
                             if (!shouldWrap ||
                                 (fixedHeight && currentHeightPx + lineHeightPx > maxHeightPx)) {
@@ -287,6 +286,7 @@
                                     // if it does, add the line and break out of the loop
                                     this._addTextLine(line, lineWidth);
                                     currentHeightPx += lineHeightPx;
+                                    textWidth = Math.max(textWidth, lineWidth);
                                     break;
                                 }
                             }
@@ -317,156 +317,159 @@
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'fontFamily', 'Arial');
 
     /**
-     * set font family
-     * @name setFontFamily
+     * get/set font family
+     * @name fontFamily
      * @method
      * @memberof Kinetic.Text.prototype
      * @param {String} fontFamily
-     */
-
-     /**
-     * get font family
-     * @name getFontFamily
-     * @method
-     * @memberof Kinetic.Text.prototype
      * @returns {String}
+     * @example
+     * // get font family
+     * var fontFamily = text.fontFamily();
+     *
+     * // set font family
+     * text.fontFamily('Arial');
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'fontSize', 12);
 
     /**
-     * set font size in pixels
-     * @name setFontSize
+     * get/set font size in pixels
+     * @name fontSize
      * @method
      * @memberof Kinetic.Text.prototype
      * @param {Number} fontSize
-     */
-
-     /**
-     * get font size
-     * @name getFontSize
-     * @method
-     * @memberof Kinetic.Text.prototype
      * @returns {Number}
+     * @example
+     * // get font size
+     * var fontSize = text.fontSize();
+     *
+     * // set font size to 22px
+     * text.fontSize(22);
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'fontStyle', NORMAL);
 
     /**
      * set font style.  Can be 'normal', 'italic', or 'bold'.  'normal' is the default.
-     * @name setFontStyle
+     * @name fontStyle
      * @method
      * @memberof Kinetic.Text.prototype
      * @param {String} fontStyle
+     * @returns {String}
+     * @example
+     * // get font style
+     * var fontStyle = text.fontStyle();
+     *
+     * // set font style
+     * text.fontStyle('bold');
      */
 
-     /**
-     * get font style
-     * @name getFontStyle
+    Kinetic.Factory.addGetterSetter(Kinetic.Text, 'fontVariant', NORMAL);
+
+    /**
+     * set font variant.  Can be 'normal' or 'small-caps'.  'normal' is the default.
+     * @name fontVariant
      * @method
      * @memberof Kinetic.Text.prototype
+     * @param {String} fontVariant
      * @returns {String}
+     * @example
+     * // get font variant
+     * var fontVariant = text.fontVariant();
+     *
+     * // set font variant
+     * text.fontVariant('small-caps');
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'padding', 0);
 
     /**
      * set padding
-     * @name setPadding
+     * @name padding
      * @method
      * @memberof Kinetic.Text.prototype
-     * @param {int} padding
-     */
-
-     /**
-     * get padding
-     * @name getPadding
-     * @method
-     * @memberof Kinetic.Text.prototype
+     * @param {Number} padding
      * @returns {Number}
+     * @example
+     * // get padding
+     * var padding = text.padding();
+     * 
+     * // set padding to 10 pixels
+     * text.padding(10);
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'align', LEFT);
 
     /**
-     * set horizontal align of text
-     * @name setAlign
+     * get/set horizontal align of text.  Can be 'left', 'center', or 'right'
+     * @name align
      * @method
      * @memberof Kinetic.Text.prototype
-     * @param {String} align align can be 'left', 'center', or 'right'
-     */
-
-     /**
-     * get horizontal align
-     * @name getAlign
-     * @method
-     * @memberof Kinetic.Text.prototype
+     * @param {String} align
      * @returns {String}
+     * @example
+     * // get text align
+     * var align = text.align();
+     *
+     * // center text
+     * text.align('center');
+     *
+     * // align text to right
+     * text.align('right');
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'lineHeight', 1);
 
     /**
-     * set line height
-     * @name setLineHeight
+     * get/set line height.  The default is 1.
+     * @name lineHeight
      * @method
      * @memberof Kinetic.Text.prototype
-     * @param {Number} lineHeight default is 1
-     */
-
-     /**
-     * get line height
-     * @name getLineHeight
-     * @method
-     * @memberof Kinetic.Text.prototype
+     * @param {Number} lineHeight
      * @returns {Number}
+     * @example 
+     * // get line height
+     * var lineHeight = text.lineHeight();
+     *
+     * // set the line height
+     * text.lineHeight(2);
      */
 
     Kinetic.Factory.addGetterSetter(Kinetic.Text, 'wrap', WORD);
 
     /**
-     * set wrap
-     * @name setWrap
+     * get/set wrap.  Can be word, char, or none. Default is word.
+     * @name wrap
      * @method
      * @memberof Kinetic.Text.prototype
-     * @param {String} wrap can be word, char, or none. Default is word
-     */
-
-     /**
-     * get wrap
-     * @name getWrap
-     * @method
-     * @memberof Kinetic.Text.prototype
+     * @param {String} wrap
      * @returns {String}
+     * @example
+     * // get wrap
+     * var wrap = text.wrap();
+     *
+     * // set wrap
+     * text.wrap('word');
      */
 
-    Kinetic.Factory.addGetter(Kinetic.Text, TEXT, EMPTY_STRING);
+    Kinetic.Factory.addGetter(Kinetic.Text, 'text', EMPTY_STRING);
+    Kinetic.Factory.addOverloadedGetterSetter(Kinetic.Text, 'text');
 
     /**
-     * get text
+     * get/set text
      * @name getText
      * @method
      * @memberof Kinetic.Text.prototype
+     * @param {String} text
      * @returns {String}
+     * @example
+     * // get text
+     * var text = text.text();
+     * 
+     * // set text
+     * text.text('Hello world!');
      */
 
-    Kinetic.Factory.addSetter(Kinetic.Text, 'width');
-
-    /**
-     * set width
-     * @name setWidth
-     * @method
-     * @memberof Kinetic.Text.prototype
-     * @param {Number|String} width default is auto
-     */
-
-    Kinetic.Factory.addSetter(Kinetic.Text, 'height');
-
-    /**
-     * set height
-     * @name setHeight
-     * @method
-     * @memberof Kinetic.Text.prototype
-     * @param {Number|String} height default is auto
-     */
+    Kinetic.Collection.mapMethods(Kinetic.Text);
 })();
